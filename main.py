@@ -7,13 +7,17 @@ import winsound
 import os
 import mss
 from colorama import Fore, Style, init
-from enum import Enum
 from itertools import cycle
+from enum import Enum
 
 # class Color(Enum):
 #     purple = (250, 100, 250)
 #     red = (250, 100, 250)
 #     yellow = (250, 100, 250)
+class GunMode(Enum):
+    pistol = {"hold":False, "mode":5, "grabzone":15}
+    phantom = {"hold":True, "mode":3, "grabzone":10}
+    sniper = {"hold":False, "mode":1, "grabzone":5}
 
 Colors = {
     "Purple": (250, 100, 250),
@@ -41,16 +45,21 @@ S_HEIGHT, S_WIDTH = (PIL.ImageGrab.grab().size)
 # YELLOW_R, YELLOW_G, YELLOW_B = (250, 100, 250)
 
 TOLERANCE = 60
+
 GRABZONE = 10
 TRIGGER_KEY = "ctrl + alt"
 SWITCH_KEY = "ctrl + tab"
 GRABZONE_KEY_UP = "ctrl + up"
 GRABZONE_KEY_DOWN = "ctrl + down"
 HOLD_KEY = "ctrl + shift"
-COLOR_SWITCH_KEY = "ctrl + 1"
+COLOR_SWITCH_KEY = "ctrl + F1"
+# GUN_MODE_KEY_DOWN = "ctrl + 1"
+GUN_MODE_KEY_UP = "ctrl + 1"
 mods = ["slow", "medium", "fast", "rapid", "super rapid", "heavy rapid"]
 TIME_MODS = [0.5, 0.25, 0.12, 0.07, 0.04, 0.02]
 COLORS = cycle([Colors["Purple"], Colors["Red"], Colors["Yellow"]])
+
+gun_modes = cycle([GunMode.pistol, GunMode.phantom, GunMode.sniper])
 
 class FoundEnemy(Exception):
     pass
@@ -64,6 +73,7 @@ class triggerBot():
         self.hold = False
         # self.color_number = 0
         self.color = Colors["Purple"]
+        self.set_gunmode(next(gun_modes))
 
     def toggle(self):
         self.toggled = not self.toggled
@@ -137,6 +147,13 @@ class triggerBot():
                 ctypes.windll.user32.mouse_event(4, 0, 0, 0, 0)  # left up
             print_banner(self)
 
+    def set_gunmode(self, gunmode):
+        self.gunmode_name = gunmode.name
+        self.hold = gunmode.value["hold"]
+        self.mode = gunmode.value["mode"]
+        global GRABZONE
+        GRABZONE = gunmode.value["grabzone"]
+        # print("Gun mode set to:",self.gunmode_name)
 
 def print_banner(bot: triggerBot):
     os.system("cls")
@@ -144,18 +161,20 @@ def print_banner(bot: triggerBot):
 █▀▀█ █▀▀▄ █▀▀ █  █
 █▄▄█ █  █ ▀▀█ █▀▀█
 ▀  ▀ ▀  ▀ ▀▀▀ ▀  ▀
-v1.0.1
+v1.1.0
 """ + Style.RESET_ALL)
     print("====== Controls ======")
     print("Activate Trigger Bot :", Fore.YELLOW + TRIGGER_KEY + Style.RESET_ALL)
     print("Switch fire mode     :", Fore.YELLOW + SWITCH_KEY + Style.RESET_ALL)
     print("Hold mode            :", Fore.YELLOW + HOLD_KEY + Style.RESET_ALL)
     print("Change Grabzone      :", Fore.YELLOW + GRABZONE_KEY_UP + "/" + GRABZONE_KEY_DOWN + Style.RESET_ALL)
-    print("Change color         :", Fore.YELLOW + COLOR_SWITCH_KEY + Style.RESET_ALL)
+    print("Change Color         :", Fore.YELLOW + COLOR_SWITCH_KEY + Style.RESET_ALL)
+    print("Change gun mode      :", Fore.YELLOW + GUN_MODE_KEY_UP + Style.RESET_ALL)
     print("==== Information =====")
     print("Mode                 :", Fore.CYAN + mods[bot.mode] + Style.RESET_ALL)
     print("Hold                 :", (Fore.GREEN if bot.hold else Fore.RED) + str(bot.hold) + Style.RESET_ALL)
-    print("Color                :", list(Colors.keys())[list(Colors.values()).index(bot.color)] )
+    print("Color                :", Fore.CYAN + list(Colors.keys())[list(Colors.values()).index(bot.color)] + Style.RESET_ALL)
+    print("Gun Mode             :", Fore.CYAN + bot.gunmode_name + Style.RESET_ALL)
     print("Grabzone             :", Fore.CYAN + str(GRABZONE) + "x" + str(GRABZONE) + Style.RESET_ALL)
     print("Activated            :", (Fore.GREEN if bot.toggled else Fore.RED) + str(bot.toggled) + Style.RESET_ALL)
     print("Last reaction time   :", Fore.CYAN + str(bot.last_reac) + Style.RESET_ALL + " ms (" + str(
@@ -183,6 +202,18 @@ if __name__ == "__main__":
             winsound.Beep(300, 200)
             while keyboard.is_pressed(GRABZONE_KEY_DOWN):
                 pass
+        elif keyboard.is_pressed(GUN_MODE_KEY_UP):
+            bot.set_gunmode(next(gun_modes))
+            print_banner(bot)
+            winsound.Beep(400, 200)
+            while keyboard.is_pressed(GUN_MODE_KEY_UP):
+                pass
+        # elif keyboard.is_pressed(GUN_MODE_KEY_DOWN):
+        #     bot.set_gunmode(pre(gun_modes))
+        #     print_banner(bot)
+        #     winsound.Beep(400, 200)
+        #     while keyboard.is_pressed(GUN_MODE_KEY_UP):
+        #         pass
         elif keyboard.is_pressed(TRIGGER_KEY):
             bot.toggle()
             print_banner(bot)
@@ -199,8 +230,14 @@ if __name__ == "__main__":
             bot.hold = not bot.hold
             print_banner(bot)
 
+            while keyboard.is_pressed(HOLD_KEY):
+                pass
+
         elif keyboard.is_pressed(COLOR_SWITCH_KEY):
             bot.switch_color()
             print_banner(bot)
+
+            while keyboard.is_pressed(COLOR_SWITCH_KEY):
+                pass
         if bot.toggled:
             bot.scan()
