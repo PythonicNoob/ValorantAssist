@@ -9,6 +9,7 @@ import mss
 from colorama import Fore, Style, init
 from itertools import cycle
 from enum import Enum
+from concurrent.futures import ThreadPoolExecutor
 
 # class Color(Enum):
 #     purple = (250, 100, 250)
@@ -176,6 +177,7 @@ class triggerBot():
         start_time = time.time()
         pmap = self.grab()
         try:
+            # with ThreadPoolExecutor.
             for x in range(0, GRABZONE * 2):
                 for y in range(0, GRABZONE * 2):
                     r, g, b = pmap.getpixel((x, y))
@@ -188,7 +190,7 @@ class triggerBot():
                     self.right_click()
                 else: self.click()
                 time.sleep(TIME_MODS[self.mode])
-                print("sleeping for:", TIME_MODS[self.mode])
+                # print("sleeping for:", TIME_MODS[self.mode])
             else:
                 if not self.burst_fire:
                     ctypes.windll.user32.mouse_event(2, 0, 0, 0, 0)  # left down
