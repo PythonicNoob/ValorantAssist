@@ -1,0 +1,3 @@
+pistol : hold-False, mode-5, grabzone- 15
+phantom : hold-True, mode-3, grabzone-10}
+sniper : hold-False, mode-1, grabzone - 5

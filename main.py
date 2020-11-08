@@ -14,10 +14,48 @@ from enum import Enum
 #     purple = (250, 100, 250)
 #     red = (250, 100, 250)
 #     yellow = (250, 100, 250)
+
+
 class GunMode(Enum):
     pistol = {"hold":False, "mode":5, "grabzone":15}
     phantom = {"hold":True, "mode":3, "grabzone":10}
     sniper = {"hold":False, "mode":1, "grabzone":5}
+
+
+class Gun():
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    @property
+    def name(self): return self._name
+
+    @name.setter
+    def name(self, val): self._name = val
+
+    @property
+    def value(self): return self._value
+
+    @value.setter
+    def value(self, val): self._value = val
+
+dat = []
+with open("guns.txt") as w:
+    dt_tmp = w.readlines()
+    for gun in dt_tmp:
+        gn_nm = gun.split(":")[0].strip()
+        gun_prs = gun.split(":")[1].strip().split(",")
+        prs = {}
+        for gun_pr in gun_prs:
+            p, v = [i.strip() for i in gun_pr.split("-")]
+            if "false" in v.lower(): prs[p] = False
+            elif "true" in v.lower(): prs[p] = True
+            else: prs[p] = int(v)
+            # dat[gn_nm] = {}
+            # dat[gn_nm][p] = v
+        dat.append(Gun(gn_nm, prs))
+# pistol = Gun('pistol', {"hold":False, "mode":5, "grabzone":15})
+# phantom = Gun('phantom', {"hold":True, "mode":3, "grabzone":10})
 
 Colors = {
     "Purple": (250, 100, 250),
@@ -55,11 +93,14 @@ HOLD_KEY = "ctrl + shift"
 COLOR_SWITCH_KEY = "ctrl + F1"
 # GUN_MODE_KEY_DOWN = "ctrl + 1"
 GUN_MODE_KEY_UP = "ctrl + 1"
+BURST_FIRE_MODE_TOGGLE_KEY = "ctrl + `"
 mods = ["slow", "medium", "fast", "rapid", "super rapid", "heavy rapid"]
 TIME_MODS = [0.5, 0.25, 0.12, 0.07, 0.04, 0.02]
 COLORS = cycle([Colors["Purple"], Colors["Red"], Colors["Yellow"]])
 
-gun_modes = cycle([GunMode.pistol, GunMode.phantom, GunMode.sniper])
+# gun_modes = cycle([GunMode.pistol, GunMode.phantom, GunMode.sniper])
+# gun_modes = cycle([pistol, phantom])
+gun_modes = cycle(dat)
 
 class FoundEnemy(Exception):
     pass
@@ -74,6 +115,7 @@ class triggerBot():
         # self.color_number = 0
         self.color = Colors["Purple"]
         self.set_gunmode(next(gun_modes))
+        self.burst_fire = False
 
     def toggle(self):
         self.toggled = not self.toggled
@@ -115,6 +157,10 @@ class triggerBot():
         ctypes.windll.user32.mouse_event(2, 0, 0, 0, 0)  # left down
         ctypes.windll.user32.mouse_event(4, 0, 0, 0, 0)  # left up
 
+    def right_click(self):
+        ctypes.windll.user32.mouse_event(8, 0, 0, 0, 0) # Right down
+        ctypes.windll.user32.mouse_event(10, 0, 0, 0, 0)  # Right up
+
     def approx(self, r, g, b):
         return self.color[0] - TOLERANCE < r < self.color[0] + TOLERANCE and self.color[1] - TOLERANCE < g < self.color[1] + TOLERANCE and self.color[2] - TOLERANCE < b < self.color[2] + TOLERANCE
 
@@ -138,13 +184,20 @@ class triggerBot():
         except FoundEnemy:
             self.last_reac = int((time.time() - start_time) * 1000)
             if not self.hold:
-                self.click()
+                if self.burst_fire:
+                    self.right_click()
+                else: self.click()
                 time.sleep(TIME_MODS[self.mode])
                 print("sleeping for:", TIME_MODS[self.mode])
             else:
-                ctypes.windll.user32.mouse_event(2, 0, 0, 0, 0)  # left down
-                time.sleep(TIME_MODS[self.mode])
-                ctypes.windll.user32.mouse_event(4, 0, 0, 0, 0)  # left up
+                if not self.burst_fire:
+                    ctypes.windll.user32.mouse_event(2, 0, 0, 0, 0)  # left down
+                    time.sleep(TIME_MODS[self.mode])
+                    ctypes.windll.user32.mouse_event(4, 0, 0, 0, 0)  # left up
+                else:
+                    ctypes.windll.user32.mouse_event(8, 0, 0, 0, 0)  # left down
+                    time.sleep(TIME_MODS[self.mode])
+                    ctypes.windll.user32.mouse_event(10, 0, 0, 0, 0)  # left up
             print_banner(self)
 
     def set_gunmode(self, gunmode):
@@ -170,11 +223,13 @@ v1.1.0
     print("Change Grabzone      :", Fore.YELLOW + GRABZONE_KEY_UP + "/" + GRABZONE_KEY_DOWN + Style.RESET_ALL)
     print("Change Color         :", Fore.YELLOW + COLOR_SWITCH_KEY + Style.RESET_ALL)
     print("Change gun mode      :", Fore.YELLOW + GUN_MODE_KEY_UP + Style.RESET_ALL)
+    print("Toggle burst fire    :", Fore.YELLOW + BURST_FIRE_MODE_TOGGLE_KEY + Style.RESET_ALL)
     print("==== Information =====")
     print("Mode                 :", Fore.CYAN + mods[bot.mode] + Style.RESET_ALL)
     print("Hold                 :", (Fore.GREEN if bot.hold else Fore.RED) + str(bot.hold) + Style.RESET_ALL)
     print("Color                :", Fore.CYAN + list(Colors.keys())[list(Colors.values()).index(bot.color)] + Style.RESET_ALL)
     print("Gun Mode             :", Fore.CYAN + bot.gunmode_name + Style.RESET_ALL)
+    print("Burst fire           :", (Fore.GREEN if bot.burst_fire else Fore.RED) + str(bot.burst_fire) + Style.RESET_ALL)
     print("Grabzone             :", Fore.CYAN + str(GRABZONE) + "x" + str(GRABZONE) + Style.RESET_ALL)
     print("Activated            :", (Fore.GREEN if bot.toggled else Fore.RED) + str(bot.toggled) + Style.RESET_ALL)
     print("Last reaction time   :", Fore.CYAN + str(bot.last_reac) + Style.RESET_ALL + " ms (" + str(
@@ -239,5 +294,13 @@ if __name__ == "__main__":
 
             while keyboard.is_pressed(COLOR_SWITCH_KEY):
                 pass
+
+        elif keyboard.is_pressed(BURST_FIRE_MODE_TOGGLE_KEY):
+            bot.burst_fire = not bot.burst_fire
+            print_banner(bot)
+
+            while keyboard.is_pressed(BURST_FIRE_MODE_TOGGLE_KEY):
+                pass
+
         if bot.toggled:
             bot.scan()
